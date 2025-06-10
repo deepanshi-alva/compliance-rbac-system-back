@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['super_admin', 'admin', 'rms', 'poc', 'back_office', 'it_team', 'tl', 'member'],
+    enum: ['super_admin', 'admin', 'rms', 'poc', 'it', 'back_office', 'it_team', 'tl', 'member'],
     required: true
   },
   parentId: {
@@ -43,6 +43,43 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // New fields for broker and segment management
+  broker: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Broker',
+    required: function() {
+      return this.role === 'member';
+    }
+  },
+  segments: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Segment'
+  }],
+  memberDetails: {
+    joiningDate: {
+      type: Date,
+      default: Date.now
+    },
+    experience: {
+      type: Number, // in years
+      min: 0
+    },
+    specialization: {
+      type: String,
+      enum: ['EQUITY_TRADER', 'COMMODITY_TRADER', 'CURRENCY_TRADER', 'DERIVATIVES_TRADER', 'ANALYST', 'SUPPORT']
+    },
+    targetAmount: {
+      type: Number,
+      default: 0
+    },
+    phone: String,
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      pincode: String
+    }
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -57,6 +94,11 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Remove duplicate indexes - only create compound indexes that don't duplicate unique fields
+userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ teamLead: 1 });
+userSchema.index({ broker: 1 });
 
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();

@@ -1,29 +1,40 @@
 const express = require('express');
 const router = express.Router();
+const { 
+  createMember, 
+  getMyTeamMembers, 
+  getFilteredMembers 
+} = require('../controllers/userController');
 const auth = require('../middleware/auth');
-const User = require('../models/User');
+const { checkRole } = require('../middleware/rbac');
+const { body, validationResult } = require('express-validator');
 
-// Get all users (admin only)
-router.get('/', auth, async (req, res) => {
-  try {
-    if (!['admin', 'super_admin'].includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied'
-      });
-    }
-
-    const users = await User.find().select('-password');
-    res.json({
-      success: true,
-      users
-    });
-  } catch (error) {
-    res.status(500).json({
+// Validation middleware
+const validateRequest = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
       success: false,
-      message: 'Server error'
+      message: 'Validation failed',
+      errors: errors.array()
     });
   }
-});
+  next();
+};
+
+// Create member (TL only)
+router.post('/members', auth, checkRole(['tl']), [
+  body('firstName').notEmpty().withMessage('First name is required'),
+  body('lastName').notEmpty().withMessage('Last name is required'),
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('broker').notEmpty().withMessage('Broker selection is required'),
+  body('segments').isArray({ min: 1 }).withMessage('At least one segment must be selected')
+], validateRequest, createMember);
+
+// Get my team members (TL only)
+router.get('/my-team', auth, checkRole(['tl']), getMyTeamMembers);
+
+// Get filtered members (TL only)
+router.get('/filtered-members', auth, checkRole(['tl']), getFilteredMembers);
 
 module.exports = router;
