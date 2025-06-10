@@ -24,9 +24,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  ctclNumber: {
+    type: String,
+    required: true,
+    unique: true
+  },
   role: {
     type: String,
-    enum: ['super_admin', 'admin', 'rms', 'poc', 'it', 'back_office', 'it_team', 'tl', 'member'],
+    enum: ['super_admin', 'admin', 'rms', 'poc', 'back_office', 'it_team', 'tl', 'member'],
     required: true
   },
   parentId: {
@@ -47,7 +52,7 @@ const userSchema = new mongoose.Schema({
   broker: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Broker',
-    required: function() {
+    required: function () {
       return this.role === 'member';
     }
   },
@@ -72,12 +77,115 @@ const userSchema = new mongoose.Schema({
       type: Number,
       default: 0
     },
+    salaryBroker: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Broker',
+    },
     phone: String,
     address: {
       street: String,
       city: String,
       state: String,
       pincode: String
+    },
+    certifications: {
+      nse: {
+        hasCertificate: {
+          type: Boolean,
+          default: false
+        },
+        certificateNumber: {
+          type: String,
+          trim: true
+        },
+        issueDate: {
+          type: Date
+        },
+        expiryDate: {
+          type: Date
+        },
+        status: {
+          type: String,
+          enum: ['ACTIVE', 'EXPIRED', 'PENDING', 'SUSPENDED'],
+          default: 'PENDING'
+        },
+        documentPath: {
+          type: String // Path to uploaded certificate document
+        }
+      },
+      bse: {
+        hasCertificate: {
+          type: Boolean,
+          default: false
+        },
+        certificateNumber: {
+          type: String,
+          trim: true
+        },
+        issueDate: {
+          type: Date
+        },
+        expiryDate: {
+          type: Date
+        },
+        status: {
+          type: String,
+          enum: ['ACTIVE', 'EXPIRED', 'PENDING', 'SUSPENDED'],
+          default: 'PENDING'
+        },
+        documentPath: {
+          type: String
+        }
+      },
+      mcx: {
+        hasCertificate: {
+          type: Boolean,
+          default: false
+        },
+        certificateNumber: {
+          type: String,
+          trim: true
+        },
+        issueDate: {
+          type: Date
+        },
+        expiryDate: {
+          type: Date
+        },
+        status: {
+          type: String,
+          enum: ['ACTIVE', 'EXPIRED', 'PENDING', 'SUSPENDED'],
+          default: 'PENDING'
+        },
+        documentPath: {
+          type: String
+        }
+      },
+      // Additional certifications can be added here
+      nism: {
+        hasCertificate: {
+          type: Boolean,
+          default: false
+        },
+        certificateNumber: {
+          type: String,
+          trim: true
+        },
+        issueDate: {
+          type: Date
+        },
+        expiryDate: {
+          type: Date
+        },
+        status: {
+          type: String,
+          enum: ['ACTIVE', 'EXPIRED', 'PENDING', 'SUSPENDED'],
+          default: 'PENDING'
+        },
+        documentPath: {
+          type: String
+        }
+      }
     }
   },
   isActive: {
@@ -100,13 +208,13 @@ userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ teamLead: 1 });
 userSchema.index({ broker: 1 });
 
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
